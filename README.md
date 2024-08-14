@@ -1,4 +1,4 @@
-# -custom-rag-stock
+# custom-rag-stock
 
 ✅ spec
 - Python 3.12
