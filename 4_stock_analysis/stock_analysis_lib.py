@@ -34,14 +34,13 @@ def get_claude3(k = 1):
         region_name="us-east-1",
     )
 
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-
-    model_kwargs =  { 
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+    model_kwargs = {
         "max_tokens": 4096,
         "temperature": 0.0,
         "top_k": k,
-        "top_p": 1,
-        "stop_sequences": ["\n\nHuman: "],
+        "top_p": 1.0,
+        "stop_sequences": ["\n\nHuman: "], 
     }
 
     model = ChatBedrock(
@@ -89,7 +88,6 @@ def get_stock_code_from_api(company_name):
         response_data = response.json()
         
         print('@@@@@@@@@@@@@@response_data: ', response_data)
-        
         if response_data["dataHeader"]["resultCode"] == "200":
             stock_info = response_data["dataBody"]["out2"][0]
             stock_code = stock_info["isCd"].strip()
