@@ -29,27 +29,34 @@ def get_llm(k = 1):
     return llm
 
 def get_claude3(k = 1):
-    bedrock_runtime = boto3.client(
-        service_name="bedrock-runtime",
-        region_name="us-east-1",
-    )
-
-    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
-    model_kwargs = {
-        "max_tokens": 4096,
-        "temperature": 0.0,
-        "top_k": k,
-        "top_p": 1.0,
-        "stop_sequences": ["\n\nHuman: "], 
-    }
-
-    model = ChatBedrock(
-        client=bedrock_runtime,
-        model_id=model_id,
-        model_kwargs=model_kwargs,
-    )
-        
-    return model
+    try:
+        bedrock_runtime = boto3.client(
+            service_name="bedrock-runtime",
+            region_name="us-east-1",
+        )
+        model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+        model_kwargs = {
+            "max_tokens": 4096,
+            "temperature": 0.0,
+            "top_k": k,
+            "top_p": 1,
+            "stop_sequences": ["\n\nHuman: "],
+        }
+        model = ChatBedrock(
+            client=bedrock_runtime,
+            model_id=model_id,
+            model_kwargs=model_kwargs,
+        )
+        return model
+    except boto3.exceptions.Boto3Error as e:
+        if 'ExpiredTokenException' in str(e):
+            print(f"Error: {e}. The security token included in the request is expired. Please renew your AWS credentials.")
+        else:
+            print(f"Error initializing Claude 3 model: {e}")
+        return None
+    except Exception as e:
+        print(f"Error initializing Claude 3 model: {e}")
+        return None
 
 
 def get_db_chain(prompt):
