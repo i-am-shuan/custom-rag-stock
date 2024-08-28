@@ -24,3 +24,4 @@ poetry==1.8.3
 starlette==0.37.2
 pydantic==2.8.2
 langserve==0.2.2
+fuzzywuzzy==0.18.0
