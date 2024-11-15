@@ -15,14 +15,23 @@ import yfinance as yf
 
 yf.pdr_override() 
 def get_llm(k = 1):
+    session = boto3.Session()
+    bedrock_runtime = session.client(
+        service_name="bedrock-runtime",
+        region_name="us-east-1"
+    )
         
-    model_parameter = {"temperature": 0.0, "top_p": .5, "top_k": k, "max_tokens_to_sample": 2000, "stop_sequences": ["SQLResult: "]}
+    model_parameter = {
+        "max_tokens": 4096,
+        "temperature": 0.0,
+        "top_k": k,
+        "top_p": 1.0,
+        "stop_sequences": ["SQLResult: "]
+    }
+    
     llm = Bedrock(
-        credentials_profile_name=os.environ.get("BWB_PROFILE_NAME"), #sets the profile name to use for AWS credentials (if not the default)
-        region_name="us-east-1", #sets the region name (if not the default)
-        endpoint_url=os.environ.get("BWB_ENDPOINT_URL"), #sets the endpoint URL (if necessary)
-        # model_id="anthropic.claude-v2", #set the foundation model
-        model_id="anthropic.claude-3-sonnet-20240229-v1:0", # Claude 3 Sonnet model ID
+        client=bedrock_runtime,
+        model_id="anthropic.claude-3-5-sonnet-20240620-v1:0",
         model_kwargs=model_parameter,
         streaming=True)
 
@@ -30,18 +39,21 @@ def get_llm(k = 1):
 
 def get_claude3(k = 1):
     try:
-        bedrock_runtime = boto3.client(
+        session = boto3.Session()
+        bedrock_runtime = session.client(
             service_name="bedrock-runtime",
-            region_name="us-east-1",
+            region_name="us-east-1"
         )
-        model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+        
+        model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
         model_kwargs = {
             "max_tokens": 4096,
             "temperature": 0.0,
             "top_k": k,
-            "top_p": 1,
+            "top_p": 1.0,
             "stop_sequences": ["\n\nHuman: "],
         }
+        
         model = ChatBedrock(
             client=bedrock_runtime,
             model_id=model_id,
@@ -52,11 +64,13 @@ def get_claude3(k = 1):
         if 'ExpiredTokenException' in str(e):
             print(f"Error: {e}. The security token included in the request is expired. Please renew your AWS credentials.")
         else:
-            print(f"Error initializing Claude 3 model: {e}")
+            print(f"Error initializing Claude 3.5 model: {e}")
         return None
     except Exception as e:
-        print(f"Error initializing Claude 3 model: {e}")
+        print(f"Error initializing Claude 3.5 model: {e}")
         return None
+
+
 
 
 def get_db_chain(prompt):
