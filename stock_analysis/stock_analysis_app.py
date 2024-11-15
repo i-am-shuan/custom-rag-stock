@@ -7,74 +7,28 @@ from datetime import date
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
-'''
+import streamlit.components.v1 as components
+
 def print_result(st, response):
-    try:
-        st.subheader("Daily sticker:")
-        st.dataframe(response['intermediate_steps'][1][1])
-        st.subheader("Stock Chart:")
-        df = pd.DataFrame(response['intermediate_steps'][1][1],columns=['Close','Volume'])
-        df['Volume'] = df['Volume']/10000000
-        df.rename(columns={'Close':'Price(USD)','Volume':'Volume(10 millions)'},inplace=True)
-        st.line_chart(df)
-        st.subheader("Conclusion:")
-        st.write(response['output'])
-    except:
-        st.write(response['output'])
-'''
-def print_result(st, response):
+    # [Previous print_result implementation remains the same]
     try:
         st.subheader("일별 주가:")
         st.dataframe(response['intermediate_steps'][1][1], use_container_width=True)
-
-        # 1. 주가 데이터 표로 출력
-        # 1.1 데이터프레임 준비
-        '''
-        df = pd.DataFrame(response['intermediate_steps'][1][1], columns=['Close', 'Open', 'High', 'Low', 'Volume'])
-
-        # 1.2 인덱스를 datetime 형식으로 변환
-        df.index = pd.to_datetime(df.index)
-
-        # 1.3 날짜만 추출하여 새로운 열 생성
-        df['Date'] = df.index.date
-
-        # 1.4 'Date' 열을 인덱스로 설정
-        df = df.set_index('Date')
-
-        # 1.5 데이터프레임 출력
-        st.dataframe(df.style.format({
-            'Close': '{:.2f}',
-            'Open': '{:.2f}',
-            'High': '{:.2f}',
-            'Low': '{:.2f}',
-            'Volume': '{:,.0f}'
-        }), use_container_width=True)
-        '''
     except:
         print("Fail to draw price data table")
 
     try:
-        # 2. 주가 데이터 차트로 출력
         st.subheader("주가 차트:")
-
-        # 2.1 데이터 준비
-        #df = pd.DataFrame(response['intermediate_steps'][1][1], columns=['Close', 'Volume'])
         df = pd.DataFrame(response['intermediate_steps'][1][1], columns=['Close', 'Open', 'High', 'Low', 'Volume'])
         df['Volume'] = df['Volume']/5000000
-        #df.rename(columns={'Close': 'Price(USD)', 'Volume': 'Volume(10 millions)'}, inplace=True)
         df.rename(columns={'Close': 'Close', 'Open': 'Open', 'High': 'High', 'Low': 'Low', 'Volume': 'Volume(10 millions)'}, inplace=True)
 
-        # 이동평균선 계산
         df['MA5'] = df['Close'].rolling(window=5).mean()
         df['MA20'] = df['Close'].rolling(window=20).mean()
         df['MA60'] = df['Close'].rolling(window=60).mean()
 
-        # 2.2 그래프 생성
         fig = go.Figure()
-
-        # 2.3 가격 차트 추가
-        #fig.add_trace(go.Scatter(x=df.index, y=df['Price(USD)'], mode='lines', name='Price(USD)'))
-        # Candlestick 차트 추가
+        
         fig.add_trace(go.Candlestick(x=df.index,
                                     open=df['Open'],
                                     high=df['High'],
@@ -82,51 +36,41 @@ def print_result(st, response):
                                     close=df['Close'],
                                     name='Candlestick'))
         
-        # 이동평균선 추가
         fig.add_trace(go.Scatter(x=df.index, y=df['MA5'], mode='lines', name='MA5'))
         fig.add_trace(go.Scatter(x=df.index, y=df['MA20'], mode='lines', name='MA20'))
         fig.add_trace(go.Scatter(x=df.index, y=df['MA60'], mode='lines', name='MA60'))
-
-        # 2.4 거래량 차트 추가 (막대 그래프)
         fig.add_trace(go.Bar(x=df.index, y=df['Volume(10 millions)'], name='Volume'))
 
-        # 2.5 레이아웃 설정
         fig.update_layout(
             title=' ',
             xaxis_title='Date',
             yaxis_title='Price(USD)',
             yaxis2=dict(title='Volume(10 millions)', tickvals=df['Volume(10 millions)'], overlaying='y', side='right'),
-            xaxis_rangeslider_visible=True,  # 범위 슬라이더 추가
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)  # 레전드 위치 변경
+            xaxis_rangeslider_visible=True,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
-        # 대화형 그래프 출력
         st.plotly_chart(fig)
     except:
         print("Fail to draw price chart")
         
     try:
-        # 3. 재무 제표 출력
         st.subheader("재무 제표:")
-        print(response['intermediate_steps'][3][1])
         fs_df = pd.DataFrame(response['intermediate_steps'][3][1])
         fs_df.columns = pd.to_datetime(fs_df.columns, format='%Y-%m-%d').year
         st.dataframe(fs_df, use_container_width=True)
-
-        #st.write(fs_df)
     except:
         print("Fail to draw financial statement")
 
     try:
-        # 4. 결과 보고서 출력
         st.subheader("분석 결과:")
         st.write(response['output'])
     except:
         st.write(response['output'])
 
 def stock_analysis():
-    st.title("GenAI Stock Agent")
+    st.title(" KB증권 GenAI Stock Agent")
     st.subheader("주식 분석을 위한 AI 투자 자문")
-    st.write("Amazon, Tesla, Apple 등과 같은 회사명으로 입력해보세요...")
+    st.write("Amazon, Tesla, Apple 등과 같은 회사명으로 입력해보세요 :)")
 
     if 'database' not in st.session_state: 
         with st.spinner("Initial Database"): 
@@ -136,16 +80,180 @@ def stock_analysis():
         st.session_state.chat_history = [] 
 
     agent = glib.initializeAgent()
-    input_text = st.chat_input("여기에 회사 이름 입력하세요!") 
-    ph = st.empty()
-    if input_text:
-        ph.empty()
-        st_callback = StreamlitCallbackHandler(st.container())
-        response = agent({
-            "input": input_text,
-            "today": date.today(),
-            "chat_history": st.session_state.chat_history,
-         },
-            callbacks=[st_callback])
-        print_result(st,response)
+    
+    # STT 컴포넌트
+    components.html(
+        """
+        <div id="speech-container">
+            <style>
+                .mic-button {
+                    background-color: transparent;
+                    border: 2px solid #ff4b4b;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-top: 10px;
+                    transition: all 0.3s ease;
+                }
+                .mic-button:hover {
+                    background-color: rgba(255,75,75,0.1);
+                }
+                .mic-button.recording {
+                    background-color: #ff4b4b;
+                    animation: pulse 1.5s infinite;
+                }
+                .mic-button img {
+                    width: 24px;
+                    height: 24px;
+                }
+                @keyframes pulse {
+                    0% { box-shadow: 0 0 0 0 rgba(255,75,75,0.4); }
+                    70% { box-shadow: 0 0 0 10px rgba(255,75,75,0); }
+                    100% { box-shadow: 0 0 0 0 rgba(255,75,75,0); }
+                }
+                #sttStatus {
+                    margin-top: 10px;
+                    color: #666;
+                    font-style: italic;
+                }
+                .recording-status {
+                    color: #ff4b4b;
+                }
+                .result-status {
+                    color: #1e88e5;
+                }
+            </style>
+            <button id="micButton" class="mic-button">
+                <img src="https://cdnjs.cloudflare.com/ajax/libs/ionicons/5.5.2/collection/components/icon/svg/mic-outline.svg" alt="microphone"/>
+            </button>
+            <div id="sttStatus"></div>
 
+            <script>
+            let recognition;
+            let isRecording = false;
+            let lastTranscript = '';
+
+            document.getElementById('micButton').addEventListener('click', function() {
+                if (!isRecording) {
+                    startRecording();
+                } else {
+                    stopRecording();
+                }
+            });
+
+            function triggerEnterKey() {
+                const input = document.querySelector('input[data-testid="stTextInput"]');
+                if (input) {
+                    input.dispatchEvent(new KeyboardEvent('keydown', {
+                        key: 'Enter',
+                        code: 'Enter',
+                        which: 13,
+                        keyCode: 13,
+                        bubbles: true
+                    }));
+                }
+            }
+
+            function updateInputAndSearch(text) {
+                const input = document.querySelector('input[data-testid="stTextInput"]');
+                if (input) {
+                    input.value = text;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    setTimeout(triggerEnterKey, 100);
+                }
+            }
+
+            function startRecording() {
+                if (!('webkitSpeechRecognition' in window)) {
+                    alert('이 브라우저는 음성 인식을 지원하지 않습니다.');
+                    return;
+                }
+
+                recognition = new webkitSpeechRecognition();
+                recognition.lang = 'ko-KR';
+                recognition.continuous = false;
+                recognition.interimResults = true;
+
+                recognition.onstart = function() {
+                    isRecording = true;
+                    document.getElementById('micButton').classList.add('recording');
+                    document.getElementById('sttStatus').className = 'recording-status';
+                    document.getElementById('sttStatus').textContent = '듣고 있습니다...';
+                    lastTranscript = '';
+                };
+
+                recognition.onend = function() {
+                    isRecording = false;
+                    document.getElementById('micButton').classList.remove('recording');
+                    if (lastTranscript) {
+                        document.getElementById('sttStatus').className = 'result-status';
+                        document.getElementById('sttStatus').textContent = '인식된 텍스트: ' + lastTranscript;
+                    }
+                };
+
+                recognition.onresult = function(event) {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript = transcript;
+                            lastTranscript = transcript;
+                            updateInputAndSearch(transcript);
+                            document.getElementById('sttStatus').className = 'result-status';
+                            document.getElementById('sttStatus').textContent = '인식된 텍스트: ' + transcript;
+                        } else {
+                            interimTranscript = transcript;
+                            document.getElementById('sttStatus').className = 'recording-status';
+                            document.getElementById('sttStatus').textContent = '인식 중: ' + transcript;
+                        }
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    document.getElementById('sttStatus').textContent = '음성 인식 오류: ' + event.error;
+                    stopRecording();
+                };
+
+                recognition.start();
+            }
+
+            function stopRecording() {
+                if (recognition) {
+                    recognition.stop();
+                }
+            }
+            </script>
+        </div>
+        """,
+        height=100
+    )
+
+    # 입력 필드와 검색 결과 영역
+    col1, col2 = st.columns([6, 1])
+    
+    with col1:
+        input_text = st.text_input(
+            "여기에 회사 이름 입력하세요!", 
+            key="text_input"
+        )
+
+    # 검색 실행
+    if input_text:
+        with st.spinner("분석 중..."):
+            st_callback = StreamlitCallbackHandler(st.container())
+            response = agent({
+                "input": input_text,
+                "today": date.today(),
+                "chat_history": st.session_state.chat_history,
+            }, callbacks=[st_callback])
+            
+            print_result(st, response)
+
+if __name__ == "__main__":
+    stock_analysis()
