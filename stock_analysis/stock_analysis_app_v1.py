@@ -62,6 +62,37 @@ def add_stt_component():
                 let recognition = null;
                 let isRecording = false;
 
+                function updateInputAndTriggerEnter(text) {
+                    // Streamlit 텍스트 입력 필드 찾기
+                    const textInput = window.parent.document.querySelector('input[aria-label="여기에 회사 이름 입력하세요!"]');
+                    if (textInput) {
+                        // 입력 필드의 value 속성 직접 설정
+                        textInput.value = text;
+                        textInput.setAttribute('value', text);
+                        
+                        // Streamlit의 상태를 업데이트하기 위한 이벤트 발생
+                        const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+                        textInput.dispatchEvent(inputEvent);
+                        
+                        // 상태 업데이트 후 약간의 지연을 두고 Enter 키 이벤트 발생
+                        setTimeout(() => {
+                            const enterEvent = new KeyboardEvent('keydown', {
+                                key: 'Enter',
+                                code: 'Enter',
+                                which: 13,
+                                keyCode: 13,
+                                bubbles: true
+                            });
+                            textInput.dispatchEvent(enterEvent);
+                        }, 100);
+                        
+                        // focus 이벤트 방지
+                        textInput.addEventListener('focus', function(e) {
+                            e.target.value = text;
+                        }, { once: true });
+                    }
+                }
+
                 function initializeSpeechRecognition() {
                     if (!('webkitSpeechRecognition' in window)) {
                         alert('이 브라우저는 음성 인식을 지원하지 않습니다. Chrome 브라우저를 사용해주세요.');
@@ -86,27 +117,13 @@ def add_stt_component():
                     };
 
                     recognition.onresult = (event) => {
-                        const transcript = Array.from(event.results)
-                            .map(result => result[0].transcript)
-                            .join('');
-
+                        const results = event.results;
+                        const transcript = results[results.length - 1][0].transcript;
                         document.getElementById('sttStatus').textContent = transcript;
 
-                        if (event.results[0].isFinal) {
-                            // Streamlit 텍스트 입력 필드 업데이트
-                            const textInput = window.parent.document.querySelector('input[aria-label="여기에 회사 이름 입력하세요!"]');
-                            if (textInput) {
-                                textInput.value = transcript;
-                                textInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                // Enter 키 이벤트 발생
-                                textInput.dispatchEvent(new KeyboardEvent('keydown', {
-                                    key: 'Enter',
-                                    code: 'Enter',
-                                    which: 13,
-                                    keyCode: 13,
-                                    bubbles: true
-                                }));
-                            }
+                        if (results[results.length - 1].isFinal) {
+                            // 음성 인식이 완료되면 즉시 텍스트 입력 및 Enter 이벤트 발생
+                            updateInputAndTriggerEnter(transcript.trim());
                             recognition.stop();
                         }
                     };
@@ -127,12 +144,25 @@ def add_stt_component():
                         recognition = initializeSpeechRecognition();
                     }
 
-                    if (!isRecording) {
+                    if (!isRecording && recognition) {
                         recognition.start();
-                    } else {
+                    } else if (recognition) {
                         recognition.stop();
                     }
                 }
+
+                // 페이지 로드 시 입력 필드 초기화 방지
+                window.addEventListener('load', () => {
+                    const textInput = window.parent.document.querySelector('input[aria-label="여기에 회사 이름 입력하세요!"]');
+                    if (textInput) {
+                        const originalValue = textInput.value;
+                        textInput.addEventListener('focus', function(e) {
+                            if (e.target.value !== originalValue) {
+                                e.target.value = originalValue;
+                            }
+                        });
+                    }
+                });
             </script>
         </div>
         """,
