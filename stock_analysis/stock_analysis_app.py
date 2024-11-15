@@ -8,8 +8,61 @@ import plotly.graph_objects as go
 import streamlit.components.v1 as components
 
 def print_result(st, response):
-    # [기존 print_result 함수 내용 유지]
-    pass
+    try:
+        st.subheader("일별 주가:")
+        st.dataframe(response['intermediate_steps'][1][1], use_container_width=True)
+    except:
+        print("Fail to draw price data table")
+
+    try:
+        st.subheader("주가 차트:")
+        df = pd.DataFrame(response['intermediate_steps'][1][1], columns=['Close', 'Open', 'High', 'Low', 'Volume'])
+        df['Volume'] = df['Volume']/5000000
+        df.rename(columns={'Close': 'Close', 'Open': 'Open', 'High': 'High', 'Low': 'Low', 'Volume': 'Volume(10 millions)'}, inplace=True)
+
+        df['MA5'] = df['Close'].rolling(window=5).mean()
+        df['MA20'] = df['Close'].rolling(window=20).mean()
+        df['MA60'] = df['Close'].rolling(window=60).mean()
+
+        fig = go.Figure()
+        
+        fig.add_trace(go.Candlestick(x=df.index,
+                                    open=df['Open'],
+                                    high=df['High'],
+                                    low=df['Low'],
+                                    close=df['Close'],
+                                    name='Candlestick'))
+        
+        fig.add_trace(go.Scatter(x=df.index, y=df['MA5'], mode='lines', name='MA5'))
+        fig.add_trace(go.Scatter(x=df.index, y=df['MA20'], mode='lines', name='MA20'))
+        fig.add_trace(go.Scatter(x=df.index, y=df['MA60'], mode='lines', name='MA60'))
+        fig.add_trace(go.Bar(x=df.index, y=df['Volume(10 millions)'], name='Volume'))
+
+        fig.update_layout(
+            title=' ',
+            xaxis_title='Date',
+            yaxis_title='Price(USD)',
+            yaxis2=dict(title='Volume(10 millions)', tickvals=df['Volume(10 millions)'], overlaying='y', side='right'),
+            xaxis_rangeslider_visible=True,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig)
+    except:
+        print("Fail to draw price chart")
+        
+    try:
+        st.subheader("재무 제표:")
+        fs_df = pd.DataFrame(response['intermediate_steps'][3][1])
+        fs_df.columns = pd.to_datetime(fs_df.columns, format='%Y-%m-%d').year
+        st.dataframe(fs_df, use_container_width=True)
+    except:
+        print("Fail to draw financial statement")
+
+    try:
+        st.subheader("분석 결과:")
+        st.write(response['output'])
+    except:
+        st.write(response['output'])
 
 def stock_analysis():
     st.title("KB증권 GenAI Stock Agent")
