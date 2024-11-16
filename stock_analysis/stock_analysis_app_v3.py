@@ -169,6 +169,8 @@ def add_stt_component():
                 function updateInputAndTriggerSearch(text) {
                     if (isProcessing) return;
                     isProcessing = true;
+                    
+                    text = text.trim().replace(/\s/g, '');
 
                     const targetInput = window.parent.document.querySelector('input[aria-label="여기에 회사 이름 입력하세요!"]');
                     
