@@ -159,16 +159,6 @@ def add_stt_component():
                 var lastTranscript = '';
                 var isProcessing = false;
 
-                function findSearchButton() {
-                    const buttons = window.parent.document.getElementsByTagName('button');
-                    for (let button of buttons) {
-                        if (button.textContent && button.textContent.includes('검색')) {
-                            return button;
-                        }
-                    }
-                    return null;
-                }
-
                 function setInputValue(input, value) {
                     const prototype = Object.getPrototypeOf(input);
                     const setter = Object.getOwnPropertyDescriptor(prototype, 'value').set;
@@ -181,10 +171,8 @@ def add_stt_component():
                     isProcessing = true;
 
                     const targetInput = window.parent.document.querySelector('input[aria-label="여기에 회사 이름 입력하세요!"]');
-                    const baseInputDiv = window.parent.document.querySelector('div[data-baseweb="input"]');
-                    const searchButton = findSearchButton();
                     
-                    if (targetInput && searchButton) {
+                    if (targetInput) {
                         // value 설정
                         setInputValue(targetInput, text);
                         lastTranscript = text;
@@ -222,11 +210,16 @@ def add_stt_component():
                             targetInput.addEventListener(eventType, maintainValue, true);
                         });
 
-                        // 검색 버튼 클릭
-                        setTimeout(() => {
-                            searchButton.click();
-                            isProcessing = false;
-                        }, 100);
+                        // Enter 키 이벤트 발생
+                        const enterEvent = new KeyboardEvent('keydown', {
+                            key: 'Enter',
+                            code: 'Enter',
+                            keyCode: 13,
+                            which: 13,
+                            bubbles: true
+                        });
+                        targetInput.dispatchEvent(enterEvent);
+                        isProcessing = false;
                     }
                 }
 
@@ -306,9 +299,17 @@ def add_stt_component():
                 // Enter 키 이벤트 처리
                 window.parent.document.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
-                        const searchButton = findSearchButton();
-                        if (searchButton) {
-                            searchButton.click();
+                        const targetInput = window.parent.document.querySelector('input[aria-label="여기에 회사 이름 입력하세요!"]');
+                        if (targetInput && targetInput.value) {
+                            // Enter 키 이벤트를 발생시켜 검색 실행
+                            const enterEvent = new KeyboardEvent('keydown', {
+                                key: 'Enter',
+                                code: 'Enter',
+                                keyCode: 13,
+                                which: 13,
+                                bubbles: true
+                            });
+                            targetInput.dispatchEvent(enterEvent);
                         }
                     }
                 });
@@ -351,28 +352,17 @@ def stock_analysis():
     st.write("음성으로 검색하시려면 마이크 버튼을 눌러주세요")
     add_stt_component()
     
-    # 입력 필드와 검색 결과 영역
-    col1, col2 = st.columns([5, 1])
-    
-    # 검색어 입력 필드
-    with col1:
-        input_text = st.text_input(
-            "여기에 회사 이름 입력하세요!", 
-            key="text_input",
-            on_change=handle_input
-        )
-    
-    # 검색 버튼
-    with col2:
-        search_button = st.button("검색", type="primary")
+    # 입력 필드
+    input_text = st.text_input(
+        "여기에 회사 이름 입력하세요!", 
+        key="text_input",
+        on_change=handle_input
+    )
 
-    # 검색 실행 (Enter 키나 검색 버튼 클릭 시)
-    should_search = search_button or st.session_state.get('enter_pressed', False)
-    
-    if should_search and input_text:
+    # Enter 키 입력 시 검색 실행
+    if st.session_state.get('enter_pressed', False) and input_text:
         # Enter 키 상태 초기화
-        if 'enter_pressed' in st.session_state:
-            st.session_state.enter_pressed = False
+        st.session_state.enter_pressed = False
             
         with st.spinner("분석 중..."):
             try:
