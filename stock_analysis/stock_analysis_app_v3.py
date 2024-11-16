@@ -351,20 +351,18 @@ def stock_analysis():
         return
 
     # STT 컴포넌트 추가
-    st.write("음성으로 검색하시려면 마이크 버튼을 눌러주세요")
+    #st.write("음성으로 검색하시려면 마이크 버튼을 눌러주세요")
     add_stt_component()
     
     # 입력 필드
     input_text = st.text_input(
         "여기에 회사 이름 입력하세요!", 
-        key="text_input",
-        on_change=handle_input
+        key="text_input"
     )
 
-    # Enter 키 입력 시 검색 실행
-    if st.session_state.get('enter_pressed', False) and input_text:
-        # Enter 키 상태 초기화
-        st.session_state.enter_pressed = False
+    # Enter 키를 눌렀을 때 검색 실행
+    if input_text and input_text != st.session_state.get('previous_input', ''):
+        st.session_state['previous_input'] = input_text
             
         with st.spinner("분석 중..."):
             try:
