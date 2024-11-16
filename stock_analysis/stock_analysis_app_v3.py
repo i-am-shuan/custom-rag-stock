@@ -7,6 +7,12 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit.components.v1 as components
 
+# Enter 키 처리를 위한 함수
+def handle_input():
+    if not st.session_state.get('enter_pressed', False):
+        st.session_state.enter_pressed = True
+        st.rerun()
+
 def print_result(st, response):
     try:
         st.subheader("일별 주가:")
@@ -296,6 +302,16 @@ def add_stt_component():
                         observer.observe(targetInput, config);
                     }
                 });
+
+                // Enter 키 이벤트 처리
+                window.parent.document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const searchButton = findSearchButton();
+                        if (searchButton) {
+                            searchButton.click();
+                        }
+                    }
+                });
             </script>
         </div>
         """,
@@ -342,7 +358,8 @@ def stock_analysis():
     with col1:
         input_text = st.text_input(
             "여기에 회사 이름 입력하세요!", 
-            key="text_input"
+            key="text_input",
+            on_change=handle_input
         )
     
     # 검색 버튼
@@ -350,7 +367,13 @@ def stock_analysis():
         search_button = st.button("검색", type="primary")
 
     # 검색 실행 (Enter 키나 검색 버튼 클릭 시)
-    if search_button and input_text:  # 버튼 클릭 시 검색 실행
+    should_search = search_button or st.session_state.get('enter_pressed', False)
+    
+    if should_search and input_text:
+        # Enter 키 상태 초기화
+        if 'enter_pressed' in st.session_state:
+            st.session_state.enter_pressed = False
+            
         with st.spinner("분석 중..."):
             try:
                 st_callback = StreamlitCallbackHandler(st.container())
